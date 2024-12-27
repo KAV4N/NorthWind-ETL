@@ -36,7 +36,7 @@ Surové dáta sú usporiadané v relačnom modeli, ktorý je znázornený na **e
 ---
 ## **2 Dimenzionálny model**
 
-Navrhnutý bol **hviezdicový model (star schema)** s centrálnou faktovou tabuľkou **`fact_orderdetails`**, ktorá je prepojená s nasledujúcimi dimenzionálnymi tabuľkami:
+Navrhnutý bol **hviezdicový model (star schema)** s centrálnou faktovou tabuľkou **`fact_order_details`**, ktorá je prepojená s nasledujúcimi dimenzionálnymi tabuľkami:
 
 ### Dimenzionálne Tabuľky
 - **`dim_customers`**: Údaje o zákazníkoch
@@ -84,11 +84,257 @@ FILE_FORMAT = (TYPE = 'CSV' SKIP_HEADER = 1);
 ```
 
 ---
-### **3.1 Transfor (Transformácia dát)**
+### **3.1 Transform (Transformácia dát)**
+
+V tejto fáze boli dáta zo staging tabuliek vyčistené, transformované a obohatené. Hlavným cieľom bolo pripraviť dimenzie a faktovú tabuľku, ktoré umožnia jednoduchú a efektívnu analýzu.
+
+Dimenzie boli navrhnuté na poskytovanie kontextu pre faktovú tabuľku.
+
+---
+
+### Dimenzia `dim_customers`
+
+Dimenzia obsahuje údaje o zákazníkoch vrátane ich mena, kontaktu a adresy.
+
+### Štruktúra tabuľky
+| Stĺpec        | Typ          | Popis                    |
+|---------------|--------------|--------------------------|
+| `customer_id` | INT          | Primárny kľúč            |
+| `customer_name`| VARCHAR(50) | Názov zákazníka          |
+| `contact_name`| VARCHAR(50)  | Kontaktná osoba          |
+| `address`     | VARCHAR(50)  | Adresa                   |
+| `city`        | VARCHAR(20)  | Mesto                    |
+| `postal_code` | VARCHAR(10)  | PSČ                      |
+| `country`     | VARCHAR(15)  | Krajina                  |
+
+### SQL kód
+```sql
+CREATE TABLE IF NOT EXISTS dim_customers (
+    customer_id INT PRIMARY KEY,
+    customer_name VARCHAR(50),
+    contact_name VARCHAR(50),
+    address VARCHAR(50),
+    city VARCHAR(20),
+    postal_code VARCHAR(10),
+    country VARCHAR(15)
+);
+```
+
+### Dimenzia `dim_shippers`
+
+Tabuľka prepravcov obsahuje údaje o jednotlivých prepravcoch vrátane ich mena a kontaktu.
+
+### Štruktúra tabuľky
+| Stĺpec       | Typ         | Popis               |
+|--------------|-------------|---------------------|
+| `shipper_id` | INT         | Primárny kľúč       |
+| `shipper_name` | VARCHAR(25) | Meno prepravcu      |
+| `phone`      | VARCHAR(15) | Telefónne číslo     |
+
+### SQL kód
+```sql
+CREATE TABLE IF NOT EXISTS dim_shippers (
+    shipper_id INT PRIMARY KEY,
+    shipper_name VARCHAR(25),
+    phone VARCHAR(15)
+);
+```
+
+---
+
+### Dimenzia `dim_employees`
+
+Obsahuje údaje o zamestnancoch vrátane ich mena, priezviska a dátumu narodenia.
+
+### Štruktúra tabuľky
+| Stĺpec        | Typ        | Popis                 |
+|---------------|------------|-----------------------|
+| `employee_id` | INT        | Primárny kľúč         |
+| `last_name`   | VARCHAR(15) | Priezvisko zamestnanca|
+| `first_name`  | VARCHAR(15) | Meno zamestnanca      |
+| `birth_date`  | DATETIME   | Dátum narodenia       |
+
+### SQL kód
+```sql
+CREATE TABLE IF NOT EXISTS dim_employees (
+    employee_id INT PRIMARY KEY,
+    last_name VARCHAR(15),
+    first_name VARCHAR(15),
+    birth_date DATETIME
+);
+```
+
+---
+
+### Dimenzia `dim_products`
+
+Tabuľka produktov zahŕňa podrobnosti o produktoch, ako sú názvy, jednotky a cena.
+
+### Štruktúra tabuľky
+| Stĺpec        | Typ            | Popis                |
+|---------------|----------------|----------------------|
+| `product_id`  | INT            | Primárny kľúč        |
+| `product_name`| VARCHAR(50)    | Názov produktu       |
+| `unit`        | VARCHAR(25)    | Jednotka             |
+| `price`       | DECIMAL(10,0)  | Cena produktu        |
+| `category_name`| VARCHAR(25)   | Názov kategórie      |
+
+### SQL kód
+```sql
+CREATE TABLE IF NOT EXISTS dim_products (
+    product_id INT PRIMARY KEY,
+    product_name VARCHAR(50),
+    unit VARCHAR(25),
+    price DECIMAL(10,0),
+    category_name VARCHAR(25)
+);
+```
+
+---
+
+### Dimenzia `dim_suppliers`
+
+Dimenzia obsahuje údaje o dodávateľoch, vrátane ich mena, kontaktu a adresy.
+
+### Štruktúra tabuľky
+| Stĺpec        | Typ          | Popis                     |
+|---------------|--------------|---------------------------|
+| `supplier_id` | INT          | Primárny kľúč             |
+| `supplier_name`| VARCHAR(50) | Názov dodávateľa          |
+| `contact_name`| VARCHAR(50)  | Kontaktná osoba           |
+| `address`     | VARCHAR(50)  | Adresa                    |
+| `city`        | VARCHAR(20)  | Mesto                     |
+| `postal_code` | VARCHAR(10)  | PSČ                       |
+| `country`     | VARCHAR(15)  | Krajina                   |
+| `phone`       | VARCHAR(15)  | Telefónne číslo           |
+
+### SQL kód
+```sql
+CREATE TABLE IF NOT EXISTS dim_suppliers (
+    supplier_id INT PRIMARY KEY,
+    supplier_name VARCHAR(50),
+    contact_name VARCHAR(50),
+    address VARCHAR(50),
+    city VARCHAR(20),
+    postal_code VARCHAR(10),
+    country VARCHAR(15),
+    phone VARCHAR(15)
+);
+```
+
+---
+
+### Dimenzia `dim_order_date`
+
+Obsahuje údaje o dátumoch objednávok, ktoré umožňujú analýzu podľa časových období.
+
+### Štruktúra tabuľky
+| Stĺpec              | Typ         | Popis                  |
+|---------------------|-------------|------------------------|
+| `order_date_id`     | INT         | Primárny kľúč          |
+| `full_date`         | DATE        | Dátum objednávky       |
+| `day`               | INT         | Deň objednávky         |
+| `day_of_week`       | INT         | Deň v týždni (číselne) |
+| `day_of_week_string`| VARCHAR(45) | Deň v týždni (text)    |
+| `week`              | INT         | Týždeň v roku          |
+| `month`             | INT         | Mesiac objednávky      |
+| `month_string`      | VARCHAR(45) | Mesiac (text)          |
+| `year`              | INT         | Rok objednávky         |
+| `quarter`           | INT         | Štvrťrok               |
+
+### SQL kód
+```sql
+CREATE TABLE IF NOT EXISTS dim_order_date (
+    order_date_id INT PRIMARY KEY,
+    full_date DATE,
+    day INT,
+    day_of_week INT,
+    day_of_week_string VARCHAR(45),
+    week INT,
+    month INT,
+    month_string VARCHAR(45),
+    year INT,
+    quarter INT
+);
+```
+
+---
+
+### Dimenzia `dim_order_time`
+
+Tabuľka pre uchovávanie údajov o čase objednávok, zahŕňajúca hodiny, minúty a sekundy.
+
+### Štruktúra tabuľky
+| Stĺpec       | Typ         | Popis           |
+|--------------|-------------|-----------------|
+| `order_time_id` | INT       | Primárny kľúč   |
+| `full_time`  | TIME        | Čas objednávky  |
+| `hour`       | INT         | Hodina          |
+| `minute`     | INT         | Minúta          |
+| `second`     | INT         | Sekunda         |
+| `ampm`       | VARCHAR(2)  | AM/PM indikátor |
+
+### SQL kód
+```sql
+CREATE TABLE IF NOT EXISTS dim_order_time (
+    order_time_id INT PRIMARY KEY,
+    full_time TIME,
+    hour INT,
+    minute INT,
+    second INT,
+    ampm VARCHAR(2)
+);
+```
+
+---
+
+### Faktová tabuľka `fact_order_details`
+
+Obsahuje prepojenie na všetky dimenzie spolu s množstvom, celkovou cenou a detailami objednávok.
+
+### Štruktúra tabuľky
+| Stĺpec            | Typ             | Popis                            |
+|-------------------|-----------------|----------------------------------|
+| `order_detail_id` | INT             | Primárny kľúč                   |
+| `order_date`      | DATETIME        | Dátum objednávky                |
+| `quantity`        | INT             | Množstvo                        |
+| `total_price`     | DECIMAL(10,0)   | Celková cena                    |
+| `customer_id`     | INT             | ID zákazníka                    |
+| `shipper_id`      | INT             | ID prepravcu                    |
+| `employee_id`     | INT             | ID zamestnanca                  |
+| `product_id`      | INT             | ID produktu                     |
+| `supplier_id`     | INT             | ID dodávateľa                   |
+| `order_date_id`   | INT             | ID dátumu objednávky            |
+| `order_time_id`   | INT             | ID času objednávky              |
+
+### SQL kód
+```sql
+CREATE TABLE IF NOT EXISTS fact_order_details (
+    order_detail_id INT PRIMARY KEY,
+    order_date DATETIME,
+    quantity INT,
+    total_price DECIMAL(10,0),
+    customer_id INT,
+    shipper_id INT,
+    employee_id INT,
+    product_id INT,
+    supplier_id INT,
+    order_date_id INT,
+    order_time_id INT,
+    FOREIGN KEY (customer_id) REFERENCES dim_customers(customer_id),
+    FOREIGN KEY (shipper_id) REFERENCES dim_shippers(shipper_id),
+    FOREIGN KEY (employee_id) REFERENCES dim_employees(employee_id),
+    FOREIGN KEY (product_id) REFERENCES dim_products(product_id),
+    FOREIGN KEY (supplier_id) REFERENCES dim_suppliers(supplier_id),
+    FOREIGN KEY (order_date_id) REFERENCES dim_order_date(order_date_id),
+    FOREIGN KEY (order_time_id) REFERENCES dim_order_time(order_time_id)
+);
+```
 
 ---
 ### **3.3 Load (Načítanie dát)**
 
+Po úspešnom vytvorení dimenzií a faktovej tabuľky boli dáta nahraté do finálnej štruktúry. Na záver boli staging tabuľky odstránené, aby sa optimalizovalo využitie úložiska:
 
 ---
 ### **Graf 1: Najviac hodnotené knihy (Top 10 kníh)**
