@@ -1,5 +1,5 @@
 # **ETL proces datasetu NorthWind**
-Tento repozitár obsahuje implementáciu ETL procesu v Snowflake pre analýzu dát z NorthWind databázy. Projekt sa zameriava na analýzu predajov, výkonnosti dodávateľov a zamestnancov, a nákupného správania zákazníkov. Výsledný dátový model umožňuje multidimenzionálnu analýzu a vizualizáciu kľúčových obchodných metrik.
+Tento repozitár obsahuje implementáciu ETL procesu v Snowflake pre analýzu dát z NorthWind databázy. Projekt sa zameriava na analýzu predajov, výkonnosti zamestnancov, a nákupného správania zákazníkov. Výsledný dátový model umožňuje multidimenzionálnu analýzu a vizualizáciu kľúčových obchodných metrik.
 
 ---
 ## **1. Úvod a popis zdrojových dát**
@@ -78,9 +78,9 @@ CREATE OR REPLACE STAGE northwind_stage;
 Do stage boli následne nahraté súbory obsahujúce údaje o produktoch, dodávateľoch, prepravcoch, zákazníkoch a zamestnancoch. Dáta boli importované do staging tabuliek pomocou príkazu `COPY INTO`. Pre každú tabuľku sa použil podobný príkaz:
 
 ```sql
-COPY INTO occupations_staging
-FROM @northwind_stage/Products_staging.csv
-FILE_FORMAT = (TYPE = 'CSV' SKIP_HEADER = 1);
+COPY INTO orders_staging
+FROM @northwind_stage/orders.csv
+FILE_FORMAT = (TYPE = 'CSV' FIELD_OPTIONALLY_ENCLOSED_BY = '"' SKIP_HEADER = 1);
 ```
 
 ---
@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS dim_customers (
     country VARCHAR(15)
 );
 ```
+---
 
 ### Dimenzia `dim_shippers`
 
@@ -334,7 +335,59 @@ CREATE TABLE IF NOT EXISTS fact_order_details (
 ---
 ### **3.3 Load (Načítanie dát)**
 
-Po úspešnom vytvorení dimenzií a faktovej tabuľky boli dáta nahraté do finálnej štruktúry. Na záver boli staging tabuľky odstránené, aby sa optimalizovalo využitie úložiska:
+Po úspešnom vytvorení dimenzií a faktovej tabuľky boli dáta nahraté do finálnej štruktúry. 
+
+Príklad načítania dát do dimenzií:
+
+### Dimenzia dim_products
+```sql
+INSERT INTO dim_products
+SELECT p.product_id, p.product_name, p.unit, p.price, c.category_name
+FROM products_staging p
+JOIN categories_staging c ON p.category_id = c.category_id;
+```
+
+### Dimenzia dim_order_time
+```sql
+INSERT INTO dim_order_time
+SELECT 
+    ROW_NUMBER() OVER (ORDER BY full_time) as order_time_id,
+    full_time,
+    hour,
+    minute,
+    second,
+    ampm
+FROM (
+    SELECT DISTINCT
+        TIME(order_date) as full_time,
+        HOUR(order_date) as hour,
+        MINUTE(order_date) as minute,
+        SECOND(order_date) as second,
+        CASE WHEN HOUR(order_date) < 12 THEN 'AM' ELSE 'PM' END as ampm
+    FROM orders_staging
+    WHERE TIME(order_date) IS NOT NULL
+);
+```
+
+Na záver boli staging tabuľky odstránené, aby sa optimalizovalo využitie úložiska:
+
+```sql
+DROP TABLE IF EXISTS order_details_staging;
+DROP TABLE IF EXISTS orders_staging;
+DROP TABLE IF EXISTS products_staging;
+DROP TABLE IF EXISTS categories_staging;
+DROP TABLE IF EXISTS suppliers_staging;
+DROP TABLE IF EXISTS employees_staging;
+DROP TABLE IF EXISTS customers_staging;
+DROP TABLE IF EXISTS shippers_staging;
+```
+
+ETL proces v Snowflake umožnil spracovanie pôvodných dát z `.csv` formátu do viacdimenzionálneho modelu typu hviezda. Tento proces zahŕňal čistenie, obohacovanie a reorganizáciu údajov. Výsledný model umožňuje analýzu čitateľských preferencií a správania používateľov, pričom poskytuje základ pre vizualizácie a reporty.
+
+---
+## **4 Vizualizácia dát**
+
+Dashboard obsahuje `6 vizualizácií`, ktoré poskytujú základný prehľad o kľúčových metrikách a trendoch týkajúcich sa kníh, používateľov a hodnotení. Tieto vizualizácie odpovedajú na dôležité otázky a umožňujú lepšie pochopiť správanie používateľov a ich preferencie.
 
 ---
 ### **Graf 1: Najviac hodnotené knihy (Top 10 kníh)**
