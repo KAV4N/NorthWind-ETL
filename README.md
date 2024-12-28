@@ -387,26 +387,109 @@ ETL proces v Snowflake umožnil spracovanie pôvodných dát z `.csv` formátu d
 ---
 ## **4 Vizualizácia dát**
 
-Dashboard obsahuje `6 vizualizácií`, ktoré poskytujú základný prehľad o kľúčových metrikách a trendoch týkajúcich sa kníh, používateľov a hodnotení. Tieto vizualizácie odpovedajú na dôležité otázky a umožňujú lepšie pochopiť správanie používateľov a ich preferencie.
+Dashboard obsahuje 6 vizualizácií, ktoré poskytujú komplexný prehľad o kľúčových metrikách a trendoch v oblasti predaja, zákazníkov a objednávok. Tieto vizualizácie pomáhajú lepšie pochopiť výkonnosť predaja a správanie zákazníkov.
 
 ---
-### **Graf 1: Najviac hodnotené knihy (Top 10 kníh)**
+### Graf 1: Denné tržby
+
+Vizualizácia zobrazuje vývoj denných tržieb v čase, umožňujúc identifikovať sezónne trendy a výkyvy v predaji. Tento pohľad je kľúčový pre pochopenie časových vzorov v predajoch a plánovanie zásob.
+
+```sql
+SELECT 
+    d.full_date,
+    SUM(f.total_price) AS daily_revenue
+FROM fact_order_details f
+JOIN dim_order_date d ON f.order_date_id = d.order_date_id
+GROUP BY d.full_date
+ORDER BY d.full_date;
+```
 
 ---
-### **Graf 2: Rozdelenie hodnotení podľa pohlavia používateľov**
+### Graf 2: Celkové tržby podľa krajín
+
+Graf znázorňuje distribúciu celkových tržieb medzi rôznymi krajinami. Tento pohľad pomáha identifikovať najvýnosnejšie trhy a potenciálne príležitosti pre expanziu.
+
+```sql
+SELECT 
+    c.country,
+    SUM(f.total_price) AS total_revenue
+FROM fact_order_details f
+JOIN dim_customers c ON f.customer_id = c.customer_id
+GROUP BY c.country
+ORDER BY total_revenue DESC;
+```
 
 ---
-### **Graf 3: Trendy hodnotení kníh podľa rokov vydania (2000–2024)**
+### Graf 3: Distribúcia hodnôt objednávok podľa krajín
+
+Tento graf kategorizuje objednávky podľa ich hodnoty (malé, stredné, veľké, extra veľké) pre každú krajinu. Poskytuje pohľad na nákupné správanie zákazníkov v rôznych regiónoch.
+
+```sql
+SELECT 
+    c.country,
+    CASE 
+        WHEN f.total_price < 100 THEN 'Small (<$100)'
+        WHEN f.total_price < 500 THEN 'Medium ($100-$500)'
+        WHEN f.total_price < 1000 THEN 'Large ($500-$1000)'
+        ELSE 'Extra Large (>$1000)'
+    END AS order_size,
+    COUNT(*) AS order_count
+FROM fact_order_details f
+JOIN dim_customers c ON f.customer_id = c.customer_id
+GROUP BY c.country, order_size
+ORDER BY c.country, order_size;
+```
 
 ---
-### **Graf 4: Celková aktivita počas dní v týždni**
+### Graf 4: Porovnanie predaja produktov podľa rokov
+
+Vizualizácia zobrazuje vývoj predaja jednotlivých produktov v čase, umožňujúc sledovať trendy popularity produktov a ich životný cyklus.
+
+```sql
+SELECT 
+    p.product_name, 
+    d.year, 
+    SUM(f.quantity) AS total_sold
+FROM fact_order_details f
+JOIN dim_products p ON f.product_id = p.product_id
+JOIN dim_order_date d ON f.order_date_id = d.order_date_id
+GROUP BY p.product_name, d.year, d.month
+ORDER BY p.product_name, d.year, d.month;
+```
 
 ---
-### **Graf 5: Počet hodnotení podľa povolaní**
+### Graf 5: Najlepšie predávané kategórie produktov
+
+Graf znázorňuje výkonnosť rôznych produktových kategórií z hľadiska generovaných tržieb, pomáhajúc identifikovať najúspešnejšie kategórie.
+
+```sql
+SELECT 
+    p.category_name,
+    SUM(f.total_price) AS revenue
+FROM fact_order_details f
+JOIN dim_products p ON f.product_id = p.product_id
+GROUP BY p.category_name
+ORDER BY revenue DESC;
+```
 
 ---
-### **Graf 6: Aktivita používateľov počas dňa podľa vekových kategórií**
+### Graf 6: Výkonnosť predajcov (TOP 10)
+
+Tento rebríček zobrazuje najúspešnejších zamestnancov podľa počtu spracovaných objednávok, poskytujúc prehľad o výkonnosti predajného tímu.
+```sql
+SELECT 
+    CONCAT(e.first_name, ' ', e.last_name) as employee_name,
+    COUNT(f.order_detail_id) as total_orders,
+FROM dim_employees e
+JOIN fact_order_details f ON e.employee_id = f.employee_id
+GROUP BY e.employee_id, employee_name
+ORDER BY total_orders DESC
+LIMIT 10;
+```
 
 ---
 
+Dashboard poskytuje prehľadné vizualizácie dôležitých metrík a trendov v oblasti predaja, zákazníckeho správania a objednávok. Vizualizácie umožňujú jednoducho interpretovať údaje a môžu byť využité na optimalizáciu predajnej stratégie, plánovanie zásob, expanziu na nové trhy a zlepšenie výkonnosti predajného tímu.
+
+---
 **Autor:** Patrik Kavan
