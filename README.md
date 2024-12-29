@@ -297,6 +297,7 @@ Obsahuje prepojenie na všetky dimenzie spolu s množstvom, celkovou cenou a det
 | Stĺpec            | Typ             | Popis                            |
 |-------------------|-----------------|----------------------------------|
 | `order_detail_id` | INT             | Primárny kľúč                   |
+| `order_id`      | INT               | ID objednávky               |
 | `order_date`      | DATETIME        | Dátum objednávky                |
 | `quantity`        | INT             | Množstvo                        |
 | `total_price`     | DECIMAL(10,0)   | Celková cena                    |
@@ -312,6 +313,7 @@ Obsahuje prepojenie na všetky dimenzie spolu s množstvom, celkovou cenou a det
 ```sql
 CREATE TABLE IF NOT EXISTS fact_order_details (
     order_detail_id INT PRIMARY KEY,
+    order_id INT,
     order_date DATETIME,
     quantity INT,
     total_price DECIMAL(10,0),
