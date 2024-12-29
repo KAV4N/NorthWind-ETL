@@ -455,8 +455,8 @@ SELECT
 FROM fact_order_details f
 JOIN dim_products p ON f.product_id = p.product_id
 JOIN dim_order_date d ON f.order_date_id = d.order_date_id
-GROUP BY p.product_name, d.year, d.month
-ORDER BY p.product_name, d.year, d.month;
+GROUP BY p.product_name, d.year
+ORDER BY p.product_name, d.year;
 ```
 
 ---
@@ -484,7 +484,7 @@ SELECT
     COUNT(DISTINCT f.order_id) as total_orders,
 FROM dim_employees e
 JOIN fact_order_details f ON e.employee_id = f.employee_id
-GROUP BY e.employee_id, employee_name
+GROUP BY employee_name
 ORDER BY total_orders DESC
 LIMIT 10;
 
