@@ -481,12 +481,13 @@ Tento rebríček zobrazuje najúspešnejších zamestnancov podľa počtu spraco
 ```sql
 SELECT 
     CONCAT(e.first_name, ' ', e.last_name) as employee_name,
-    COUNT(f.order_detail_id) as total_orders,
+    COUNT(DISTINCT f.order_id) as total_orders,
 FROM dim_employees e
 JOIN fact_order_details f ON e.employee_id = f.employee_id
 GROUP BY e.employee_id, employee_name
 ORDER BY total_orders DESC
 LIMIT 10;
+
 ```
 
 ---
