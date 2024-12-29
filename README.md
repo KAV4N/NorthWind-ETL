@@ -395,6 +395,7 @@ Dashboard obsahuje 6 vizualizácií, ktoré poskytujú komplexný prehľad o kľ
   <br>
   <em>Obrázok 3 Dashboard</em>
 </p>
+
 ---
 ### Graf 1: Denné tržby
 
@@ -414,6 +415,7 @@ ORDER BY d.full_date;
   <br>
   <em>Obrázok 4 Graf 1</em>
 </p>
+
 ---
 ### Graf 2: Celkové tržby podľa krajín
 
@@ -433,6 +435,7 @@ ORDER BY total_revenue DESC;
   <br>
   <em>Obrázok 5 Graf 2</em>
 </p>
+
 ---
 ### Graf 3: Distribúcia hodnôt objednávok podľa krajín
 
@@ -458,6 +461,7 @@ ORDER BY c.country, order_size;
   <br>
   <em>Obrázok 6 Graf 3</em>
 </p>
+
 ---
 ### Graf 4: Porovnanie predaja produktov podľa rokov
 
@@ -479,6 +483,7 @@ ORDER BY p.product_name, d.year;
   <br>
   <em>Obrázok 7 Graf 4</em>
 </p>
+
 ---
 ### Graf 5: Najlepšie predávané kategórie produktov
 
