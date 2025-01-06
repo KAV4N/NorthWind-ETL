@@ -41,18 +41,25 @@ Navrhnutý bol **hviezdicový model (star schema)** s centrálnou faktovou tabu�
 ### Dimenzionálne Tabuľky
 - **`dim_customers`**: Údaje o zákazníkoch (SCD typ 2)
   - Atribúty: meno, kontakt, adresa
-- **`dim_employees`**: Informácie o zamestnancoch (SCD typ 2)
+  - Uchovanie histórie zmien údajov pre historické analýzy
+- **`dim_employees`**: Informácie o zamestnancoch (SCD typ 1)
   - Atribúty: meno, priezvisko, dátum narodenia
+  - Údaje sa pri zmene dát prepisujú
 - **`dim_products`**: Produktový katalóg (SCD typ 2)
   - Atribúty: názov, jednotka, cena, kategória
+  - Uchovanie histórie zmien údajov pre historické analýzy
 - **`dim_suppliers`**: Údaje o dodávateľoch (SCD typ 2)
   - Atribúty: názov, kontakt, adresa
+  - Uchovanie histórie zmien údajov pre historické analýzy
 - **`dim_shippers`**: Informácie o prepravcoch (SCD Typ 1)
   - Atribúty: názov, telefón
+  - Údaje sa pri zmene dát prepisujú
 - **`dim_order_date`**: Časová dimenzia pre dátum (SCD Typ 0)
   - Atribúty: deň, mesiac, rok, štvrťrok
+  - Statické údaje
 - **`dim_order_time`**: Časová dimenzia pre čas (SCD Typ 0)
   - Atribúty: hodina, AM/PM
+  - Statické údaje
 
 Štruktúra hviezdicového modelu je znázornená na diagrame nižšie. Diagram ukazuje prepojenia medzi faktovou tabuľkou a dimenziami, čo zjednodušuje pochopenie a implementáciu modelu.
 <p align="center">
