@@ -39,19 +39,19 @@ Surové dáta sú usporiadané v relačnom modeli, ktorý je znázornený na **e
 Navrhnutý bol **hviezdicový model (star schema)** s centrálnou faktovou tabuľkou **`fact_order_details`**, ktorá je prepojená s nasledujúcimi dimenzionálnymi tabuľkami:
 
 ### Dimenzionálne Tabuľky
-- **`dim_customers`**: Údaje o zákazníkoch
+- **`dim_customers`**: Údaje o zákazníkoch (SCD typ 2)
   - Atribúty: meno, kontakt, adresa
-- **`dim_employees`**: Informácie o zamestnancoch
+- **`dim_employees`**: Informácie o zamestnancoch (SCD typ 2)
   - Atribúty: meno, priezvisko, dátum narodenia
-- **`dim_products`**: Produktový katalóg
+- **`dim_products`**: Produktový katalóg (SCD typ 2)
   - Atribúty: názov, jednotka, cena, kategória
-- **`dim_suppliers`**: Údaje o dodávateľoch
+- **`dim_suppliers`**: Údaje o dodávateľoch (SCD typ 2)
   - Atribúty: názov, kontakt, adresa
-- **`dim_shippers`**: Informácie o prepravcoch
+- **`dim_shippers`**: Informácie o prepravcoch (SCD Typ 1)
   - Atribúty: názov, telefón
-- **`dim_order_date`**: Časová dimenzia pre dátum
+- **`dim_order_date`**: Časová dimenzia pre dátum (SCD Typ 0)
   - Atribúty: deň, mesiac, rok, štvrťrok
-- **`dim_order_time`**: Časová dimenzia pre čas
+- **`dim_order_time`**: Časová dimenzia pre čas (SCD Typ 0)
   - Atribúty: hodina, AM/PM
 
 Štruktúra hviezdicového modelu je znázornená na diagrame nižšie. Diagram ukazuje prepojenia medzi faktovou tabuľkou a dimenziami, čo zjednodušuje pochopenie a implementáciu modelu.
