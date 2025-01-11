@@ -63,7 +63,7 @@ Navrhnutý bol **hviezdicový model (star schema)** s centrálnou faktovou tabu�
 
 Štruktúra hviezdicového modelu je znázornená na diagrame nižšie. Diagram ukazuje prepojenia medzi faktovou tabuľkou a dimenziami, čo zjednodušuje pochopenie a implementáciu modelu.
 <p align="center">
-  <img src="https://github.com/KAV4N/NorthWind-ETL/blob/0bdbdddac273875bb0a1c08a52e823618aa9adc3/img/Northwind_Star_Schema.png" alt="Star Schema">
+  <img src="https://github.com/KAV4N/NorthWind-ETL/blob/95386d5572ecd34dc51eb26d77b7fe8d1e469a6a/img/Northwind_Star_Schema.png" alt="Star Schema">
   <br>
   <em>Obrázok 2 Schéma hviezdy pre NorthWind</em>
 </p>
@@ -307,7 +307,11 @@ Obsahuje prepojenie na všetky dimenzie spolu s množstvom, celkovou cenou a det
 | `order_id`      | INT               | ID objednávky               |
 | `order_date`      | DATETIME        | Dátum objednávky                |
 | `quantity`        | INT             | Množstvo                        |
-| `total_price`     | DECIMAL(10,0)   | Celková cena                    |
+| `total_quantity`        | INT             | Celkové množstvo produktov v objednávke                        |
+| `order_price`     | DECIMAL(10,0)   | Celková cena produktov                   |
+| `order_value`     | VARCHAR(25)  | Cenové rozdelenie objednávky produktu               |
+| `total_order_price`     | DECIMAL(10,0)  | Celková cena objednávky            |
+| `total_order_value`     | VARCHAR(25)   | Celkové cenové rozdelenie objednávky             |
 | `customer_id`     | INT             | ID zákazníka                    |
 | `shipper_id`      | INT             | ID prepravcu                    |
 | `employee_id`     | INT             | ID zamestnanca                  |
@@ -323,7 +327,12 @@ CREATE TABLE IF NOT EXISTS fact_order_details (
     order_id INT,
     order_date DATETIME,
     quantity INT,
-    total_price DECIMAL(10,0),
+    total_quantity INT,
+    items_per_order INT, 
+    order_price DECIMAL(10,0),
+    order_value VARCHAR(25),     
+    total_order_price DECIMAL(10,0),    
+    total_order_value VARCHAR(25),   
     customer_id INT,
     shipper_id INT,
     employee_id INT,
@@ -411,11 +420,11 @@ Vizualizácia zobrazuje vývoj denných tržieb v čase, umožňujúc identifiko
 
 ```sql
 SELECT 
+    DISTINCT f.order_id,
     d.full_date,
-    SUM(f.total_price) AS daily_revenue
+    f.total_order_price
 FROM fact_order_details f
 JOIN dim_order_date d ON f.order_date_id = d.order_date_id
-GROUP BY d.full_date
 ORDER BY d.full_date;
 ```
 <p align="center">
@@ -432,11 +441,17 @@ Graf znázorňuje distribúciu celkových tržieb medzi rôznymi krajinami. Tent
 ```sql
 SELECT 
     c.country,
-    SUM(f.total_price) AS total_revenue
-FROM fact_order_details f
+    SUM(f.total_order_price) AS price_sum
+FROM (
+    SELECT 
+        DISTINCT f.order_id, 
+        f.total_order_price,
+        f.customer_id
+        FROM fact_order_details f
+    ) AS f
 JOIN dim_customers c ON f.customer_id = c.customer_id
 GROUP BY c.country
-ORDER BY total_revenue DESC;
+ORDER BY price_sum DESC;
 ```
 <p align="center">
   <img src="https://github.com/KAV4N/NorthWind-ETL/blob/0bdbdddac273875bb0a1c08a52e823618aa9adc3/img/dashboard/chart2.png" alt="Dashboard">
@@ -452,17 +467,12 @@ Tento graf kategorizuje objednávky podľa ich hodnoty (malé, stredné, veľké
 ```sql
 SELECT 
     c.country,
-    CASE 
-        WHEN f.total_price < 100 THEN 'Small (<$100)'
-        WHEN f.total_price < 500 THEN 'Medium ($100-$500)'
-        WHEN f.total_price < 1000 THEN 'Large ($500-$1000)'
-        ELSE 'Extra Large (>$1000)'
-    END AS order_size,
-    COUNT(*) AS order_count
+    f.order_value,
+    COUNT(*) as order_count
 FROM fact_order_details f
 JOIN dim_customers c ON f.customer_id = c.customer_id
-GROUP BY c.country, order_size
-ORDER BY c.country, order_size;
+GROUP BY c.country, order_value
+ORDER BY c.country, order_value;
 ```
 <p align="center">
   <img src="https://github.com/KAV4N/NorthWind-ETL/blob/0bdbdddac273875bb0a1c08a52e823618aa9adc3/img/dashboard/chart3.png" alt="Dashboard">
@@ -485,6 +495,7 @@ JOIN dim_products p ON f.product_id = p.product_id
 JOIN dim_order_date d ON f.order_date_id = d.order_date_id
 GROUP BY p.product_name, d.year
 ORDER BY p.product_name, d.year;
+
 ```
 <p align="center">
   <img src="https://github.com/KAV4N/NorthWind-ETL/blob/0bdbdddac273875bb0a1c08a52e823618aa9adc3/img/dashboard/chart4.png" alt="Dashboard">
@@ -498,9 +509,10 @@ ORDER BY p.product_name, d.year;
 Graf znázorňuje výkonnosť rôznych produktových kategórií z hľadiska generovaných tržieb, pomáhajúc identifikovať najúspešnejšie kategórie.
 
 ```sql
+
 SELECT 
     p.category_name,
-    SUM(f.total_price) AS revenue
+    SUM(f.order_price) as revenue
 FROM fact_order_details f
 JOIN dim_products p ON f.product_id = p.product_id
 GROUP BY p.category_name
@@ -525,6 +537,7 @@ JOIN fact_order_details f ON e.employee_id = f.employee_id
 GROUP BY employee_name
 ORDER BY total_orders DESC
 LIMIT 10;
+
 
 ```
 <p align="center">
