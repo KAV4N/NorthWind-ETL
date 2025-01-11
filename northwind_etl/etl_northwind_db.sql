@@ -134,6 +134,7 @@ COPY INTO categories_staging
 FROM @northwind_stage/categories.csv
 FILE_FORMAT = (TYPE = 'CSV' FIELD_OPTIONALLY_ENCLOSED_BY = '"' SKIP_HEADER = 1);
 
+
 --- Transform
 DROP TABLE IF EXISTS fact_order_details;
 DROP TABLE IF EXISTS dim_customers;
@@ -213,7 +214,12 @@ CREATE TABLE IF NOT EXISTS fact_order_details (
     order_id INT,
     order_date DATETIME,
     quantity INT,
-    total_price DECIMAL(10,0),
+    total_quantity INT,
+    items_per_order INT, 
+    order_price DECIMAL(10,0),
+    order_value VARCHAR(25),     
+    total_order_price DECIMAL(10,0),    
+    total_order_value VARCHAR(25),   
     customer_id INT,
     shipper_id INT,
     employee_id INT,
@@ -302,13 +308,47 @@ FROM (
     WHERE TIME(order_date) IS NOT NULL
 );
 
+
 INSERT INTO fact_order_details
+WITH order_totals AS (
+    SELECT 
+        od3.order_id,
+        SUM(od3.quantity * p2.price) as total_order_price
+    FROM order_details_staging od3
+    JOIN products_staging p2 ON od3.product_id = p2.product_id
+    GROUP BY od3.order_id
+)
 SELECT 
     od.order_detail_id,
     o.order_id,
     o.order_date,
     od.quantity,
-    od.quantity * p.price as total_price,
+    (SELECT SUM(od2.quantity) 
+     FROM order_details_staging od2 
+     WHERE od2.order_id = o.order_id) as total_quantity, 
+     
+    
+    (SELECT COUNT(*) 
+     FROM order_details_staging od2 
+     WHERE od2.order_id = o.order_id) as items_per_order, 
+     
+     
+    od.quantity * p.price as order_price,
+    CASE 
+        WHEN order_price < 100 THEN 'Small (<$100)'
+        WHEN order_price < 500 THEN 'Medium ($100-$500)'
+        WHEN order_price < 1000 THEN 'Large ($500-$1000)'
+        ELSE 'Extra Large (>$1000)'
+    END as order_value,
+    
+    ot.total_order_price,
+    CASE 
+        WHEN ot.total_order_price < 100 THEN 'Small (<$100)'
+        WHEN ot.total_order_price < 500 THEN 'Medium ($100-$500)'
+        WHEN ot.total_order_price < 1000 THEN 'Large ($500-$1000)'
+        ELSE 'Extra Large (>$1000)'
+    END as total_order_value,
+
     o.customer_id,
     o.shipper_id,
     o.employee_id,
@@ -319,6 +359,7 @@ SELECT
 FROM order_details_staging od
 JOIN orders_staging o ON od.order_id = o.order_id
 JOIN products_staging p ON od.product_id = p.product_id
+JOIN order_totals ot ON o.order_id = ot.order_id
 JOIN dim_order_date od_date ON DATE(o.order_date) = od_date.full_date
 JOIN dim_order_time od_time ON TIME(o.order_date) = od_time.full_time;
 
